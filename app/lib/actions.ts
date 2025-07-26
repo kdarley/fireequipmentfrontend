@@ -4,6 +4,10 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import postgres from 'postgres';
+import { auth, signIn } from '@/auth';
+import { AuthError } from 'next-auth';
+import  bcrypt from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
@@ -103,8 +107,104 @@ export async function updateInvoice(
 }
 
 export async function deleteInvoice(id: string) {
-  throw new Error('Failed to Delete Invoice');
+  // throw new Error('Failed to Delete Invoice');
 
   await sql`DELETE FROM invoices WHERE id = ${id}`;
   revalidatePath('/dashboard/invoices');
+}
+
+export async function authenticate(
+  prevState: string | undefined,
+  formData: FormData,
+) {
+  try {
+    await signIn('credentials', formData);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case 'CredentialsSignin':
+          return 'Invalid credentials.';
+        default:
+          return 'Something went wrong.';
+      }
+    }
+    throw error;
+  }
+}
+
+export type UserState = {
+  errors?: {
+    name?: string[];
+    email?: string[];
+    password?: string[];
+  };
+  message?: string | null;
+};
+
+const UserFormSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, { message: 'Name is required.' }),
+  email: z.string().email({ message: 'Invalid email address.' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters long.' }),
+});
+
+const CreateUser = UserFormSchema.omit({ id: true });
+
+export async function createUser(prevState: UserState, formData: FormData): Promise<UserState> {
+  const validatedFields = CreateUser.safeParse({
+    name: formData.get('name'),
+    email: formData.get('email'),
+    password: formData.get('password'),
+  });
+
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Invalid input. Failed to create user.',
+    };
+  }
+
+  const { name, email, password } = validatedFields.data;
+
+  // console.log('CREATE USER FUNCTION HIT!');
+  // console.log('Name:', name);
+  // console.log('Email:', email);
+  // console.log('Password:', password);
+
+  const existingUser = await sql`
+  SELECT * FROM users WHERE email = ${email}`;
+
+  if (existingUser.length > 0) {
+    return {
+      errors: { email: ['A user with that email already exists.'] },
+    };
+  }
+
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await sql`
+      INSERT INTO users (id, name, email, password)
+      VALUES (${uuidv4()}, ${name}, ${email}, ${hashedPassword})
+    `;
+  } catch (error) {
+    return {
+      message: 'Database Error: Failed to Create User.',
+    };
+  }
+
+  try {
+    await signIn('credentials', {
+      redirect: false,
+      email,
+      password,
+    });
+  } catch (error) {
+    console.error('Auto-login failed:', error);
+    return {
+      message: 'User created, but failed to sign in.',
+    };
+  }
+
+  redirect('/dashboard');
 }
