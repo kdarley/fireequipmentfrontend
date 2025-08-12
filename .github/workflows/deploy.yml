@@ -1,0 +1,27 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        run: |
+          echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+
+      - name: Build and push Docker image
+        run: |
+          docker build -t ghcr.io/${GHCR_USERNAME}/frontend:latest .
+          docker push ghcr.io/${GHCR_USERNAME}/frontend:latest
+
+      - name: Deploy with Docker Compose
+        run: |
+          cd /home/ubuntu
+          docker-compose pull frontend
+          docker-compose up -d --remove-orphans
