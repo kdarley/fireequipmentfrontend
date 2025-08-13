@@ -51,8 +51,8 @@ jobs:
           docker pull nginx:latest
           docker pull certbot/certbot:latest
 
-      - name: Stop and remove existing containers (if any)
-        run: docker compose down || echo "No existing containers to stop"
+      - name: Stop and remove existing containers
+        run: docker compose down || echo "No containers to stop"
 
-      - name: Start containers with docker compose
+      - name: Start containers
         run: docker compose up -d
