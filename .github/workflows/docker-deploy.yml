@@ -46,7 +46,7 @@ jobs:
         run: docker pull kdarley/fireequipmentfrontend:latest
 
       - name: Stop existing containers and remove them
-        run: docker-compose down
+        run: docker compose down
 
-      - name: Start containers with docker-compose
-        run: docker-compose up -d
+      - name: Start containers with docker compose
+        run: docker compose up -d
