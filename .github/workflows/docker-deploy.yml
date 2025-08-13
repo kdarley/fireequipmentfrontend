@@ -112,9 +112,9 @@ jobs:
 
       - name: Deploy stack
         run: |
-          # Do NOT prune volumes; certs live in /docker-data
-          docker system prune -af || true
-          docker compose up -d
+          # Recreate containers
+          docker compose up -d --force-recreate
+
 
       - name: Show running containers
         run: docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
