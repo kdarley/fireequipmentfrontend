@@ -1,36 +1,26 @@
-# Stage 1 — builder
-FROM node:20-alpine AS builder
+# Use official Node.js LTS Alpine image for small size and security
+FROM node:18-alpine
+
+# Set working directory inside container
 WORKDIR /app
 
-# Install deps first (better cache usage)
-COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts --legacy-peer-deps
+# Install pnpm globally
+RUN npm install -g pnpm
 
-# Copy all source
+# Copy package manifests for dependency installation
+COPY package.json pnpm-lock.yaml* ./
+
+# Install dependencies based on lockfile
+RUN pnpm install --frozen-lockfile
+
+# Copy all source files
 COPY . .
 
-# Build Next.js
-RUN npm run build
+# Build Next.js app
+RUN pnpm build
 
-# Stage 2 — runner
-FROM node:20-alpine AS runner
-WORKDIR /app
-
-ENV NODE_ENV=production
-
-# Add user for security
-RUN addgroup -S app && adduser -S app -G app
-USER app
-
-# Copy required build artifacts from builder
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/.next ./.next
-
-# Expose app port
+# Expose port 3000 for the app
 EXPOSE 3000
-ENV PORT=3000
 
-# Start Next.js in production
-CMD ["npm", "start"]
+# Run the app in production mode
+CMD ["pnpm", "start"]
