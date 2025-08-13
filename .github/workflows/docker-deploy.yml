@@ -41,6 +41,9 @@ jobs:
       LETSENCRYPT_STAGING: ${{ vars.LETSENCRYPT_STAGING || 'false' }}
 
     steps:
+      - name: Change to working directory
+        run: cd /home/ubuntu/app
+
       - name: Checkout repo on EC2 runner
         uses: actions/checkout@v4
 
