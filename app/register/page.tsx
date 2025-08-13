@@ -2,6 +2,8 @@ import AcmeLogo from '@/app/ui/acme-logo';
 import RegisterForm from '@/app/ui/register-form';
 import { Suspense } from 'react';
  
+
+export const revalidate = 0;
 export default function RegisterPage() {
   return (
     <main className="flex items-center justify-center md:h-screen">
