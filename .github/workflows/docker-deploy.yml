@@ -111,8 +111,16 @@ jobs:
           fi
 
       - name: Deploy stack
+      - name: Clean Docker environment before deploy
         run: |
-          # Recreate containers
+          docker stop $(docker ps -q) || true
+          docker rm $(docker ps -aq) || true
+          docker image prune -af
+          docker volume prune -f
+          docker network prune -f
+
+        run: |
+          # Prune and recreate containers
           docker compose up -d --force-recreate
 
 
