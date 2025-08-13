@@ -28,26 +28,25 @@ jobs:
           push: true
           tags: kdarley/fireequipmentfrontend:latest
 
-deploy:
-  needs: build-and-push
-  runs-on: self-hosted
+  deploy:
+    needs: build-and-push
+    runs-on: self-hosted
 
-  steps:
-    - name: Checkout repo on runner
-      uses: actions/checkout@v3
+    steps:
+      - name: Checkout repo on runner
+        uses: actions/checkout@v3
 
-    - name: Login to Docker Hub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Pull latest Docker image
-      run: docker pull kdarley/fireequipmentfrontend:latest
+      - name: Pull latest Docker image
+        run: docker pull kdarley/fireequipmentfrontend:latest
 
-    - name: Stop existing containers and remove them
-      run: docker-compose down
+      - name: Stop existing containers and remove them
+        run: docker-compose down
 
-    - name: Start containers with docker-compose
-      run: docker-compose up -d
-
+      - name: Start containers with docker-compose
+        run: docker-compose up -d
