@@ -28,21 +28,26 @@ jobs:
           push: true
           tags: kdarley/fireequipmentfrontend:latest
 
-  deploy:
-    needs: build-and-push
-    runs-on: self-hosted    # your EC2 runner label(s)
+deploy:
+  needs: build-and-push
+  runs-on: self-hosted
 
-    steps:
-      - name: Pull latest Docker image
-        run: docker pull kdarley/fireequipmentfrontend:latest
+  steps:
+    - name: Checkout repo on runner
+      uses: actions/checkout@v3
 
-      - name: Stop existing container (if running)
-        run: |
-          if [ "$(docker ps -q -f name=fireequipmentfrontend)" ]; then
-            docker stop fireequipmentfrontend
-            docker rm fireequipmentfrontend
-          fi
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Start container with new image
-        run: |
-          docker run -d --name fireequipmentfrontend -p 3000:3000 kdarley/fireequipmentfrontend:latest
+    - name: Pull latest Docker image
+      run: docker pull kdarley/fireequipmentfrontend:latest
+
+    - name: Stop existing containers and remove them
+      run: docker-compose down
+
+    - name: Start containers with docker-compose
+      run: docker-compose up -d
+

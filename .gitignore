@@ -37,3 +37,10 @@ next-env.d.ts
 
 *.ppk
 *.pem
+
+certbot/conf/live/
+certbot/conf/archive/
+certbot/conf/accounts/
+
+*.log
+.vscode/
