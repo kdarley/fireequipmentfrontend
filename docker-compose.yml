@@ -2,39 +2,45 @@ services:
   frontend:
     image: kdarley/fireequipmentfrontend:latest
     container_name: frontend
-    restart: always
+    restart: unless-stopped
     environment:
       NODE_ENV: production
     expose:
       - "3000"
-
-  certbot:
-    image: certbot/certbot:latest
-    container_name: certbot
-    volumes:
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-    entrypoint: >
-      /bin/sh -c 'trap exit TERM;
-      certbot certonly --webroot -w /var/www/certbot
-      --email you@example.com --agree-tos --no-eff-email
-      -d yourdomain.com || true;
-      while :; do
-        certbot renew --webroot -w /var/www/certbot --quiet;
-        sleep 12h & wait $${!};
-      done;'
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -qO- http://localhost:3000/ >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
 
   nginx:
     image: nginx:latest
     container_name: nginx
-    restart: always
+    restart: unless-stopped
     depends_on:
       - frontend
-      - certbot
     ports:
       - "80:80"
       - "443:443"
     volumes:
+      # Rendered conf (workflow writes a file here at deploy time)
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./certbot/conf:/etc/letsencrypt:ro
-      - ./certbot/www:/var/www/certbot
+      # Certs and challenge webroot (persistent on host)
+      - /docker-data/certbot/conf:/etc/letsencrypt:ro
+      - /docker-data/certbot/www:/var/www/certbot
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: certbot
+    restart: unless-stopped
+    volumes:
+      - /docker-data/certbot/conf:/etc/letsencrypt
+      - /docker-data/certbot/www:/var/www/certbot
+    # Renewal loop; initial certificate is obtained by a one-off `docker compose run certbot ...`
+    entrypoint: >
+      /bin/sh -c 'trap exit TERM;
+      while :; do
+        certbot renew --webroot -w /var/www/certbot --quiet;
+        sleep 12h & wait $${!};
+      done;'

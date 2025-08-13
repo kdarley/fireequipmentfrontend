@@ -41,6 +41,9 @@ next-env.d.ts
 certbot/conf/live/
 certbot/conf/archive/
 certbot/conf/accounts/
+certbot/conf/
+certbot/www/
+
 
 *.log
 .vscode/

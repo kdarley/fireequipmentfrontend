@@ -1,0 +1,19 @@
+name: Daily Nginx Reload
+
+on:
+  schedule:
+    - cron: "27 3 * * *" # daily at 03:27 UTC
+  workflow_dispatch:
+
+jobs:
+  reload:
+    runs-on: self-hosted
+    steps:
+      - name: Reload Nginx if running
+        run: |
+          if docker ps --format '{{.Names}}' | grep -q '^nginx$'; then
+            docker exec nginx nginx -s reload || true
+            echo "Reload signal sent to nginx."
+          else
+            echo "nginx is not running; nothing to reload."
+          fi

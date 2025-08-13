@@ -2,57 +2,120 @@ name: Build, Push, and Deploy
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+
+env:
+  IMAGE_NAME: kdarley/fireequipmentfrontend:latest
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: kdarley/fireequipmentfrontend:latest
+          tags: ${{ env.IMAGE_NAME }}
 
   deploy:
     needs: build-and-push
+    # This MUST be your EC2 self-hosted runner
     runs-on: self-hosted
 
+    env:
+      DOMAIN: ${{ secrets.PROD_DOMAIN }}   # e.g. example.com
+      LE_EMAIL: ${{ secrets.LE_EMAIL }}    # your email for Let's Encrypt
+      # Set to "true" while testing to avoid rate limits, then remove.
+      LETSENCRYPT_STAGING: ${{ vars.LETSENCRYPT_STAGING || 'false' }}
+
     steps:
-      - name: Checkout repo on runner
-        uses: actions/checkout@v3
+      - name: Checkout repo on EC2 runner
+        uses: actions/checkout@v4
+
+      - name: Verify Docker and Compose
+        run: |
+          docker --version
+          docker compose version
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Clean up Docker to free space
-        run: docker system prune -af --volumes || true
-
-      - name: Pull latest Docker images
+      - name: Ensure persistent directories exist on host
         run: |
-          docker pull kdarley/fireequipmentfrontend:latest
+          mkdir -p /docker-data/certbot/conf /docker-data/certbot/www
+          # Make sure the runner user can read/write
+          sudo chown -R $USER:$USER /docker-data
+
+      - name: Pull images
+        run: |
+          docker pull ${{ env.IMAGE_NAME }}
           docker pull nginx:latest
           docker pull certbot/certbot:latest
 
-      - name: Stop and remove existing containers
-        run: docker compose down || echo "No containers to stop"
+      - name: Render Nginx templates with your DOMAIN
+        run: |
+          mkdir -p nginx/conf.d
+          # Use sed to replace placeholders
+          sed "s/{{DOMAIN}}/${DOMAIN}/g" nginx/templates/bootstrap.conf.template > nginx/conf.d/site.conf.bootstrap
+          sed "s/{{DOMAIN}}/${DOMAIN}/g" nginx/templates/app.conf.template > nginx/conf.d/site.conf.app
 
-      - name: Start containers
-        run: docker compose up -d
+      - name: Bootstrap cert if missing
+        run: |
+          set -e
+          CERT_DIR="/docker-data/certbot/conf/live/${DOMAIN}"
+          STAGING_FLAG=""
+          if [ "${LETSENCRYPT_STAGING}" = "true" ]; then
+            STAGING_FLAG="--staging"
+          fi
+
+          if [ ! -d "$CERT_DIR" ]; then
+            echo "No certs found. Bootstrapping..."
+            # Use HTTP-only config
+            cp nginx/conf.d/site.conf.bootstrap nginx/conf.d/site.conf
+            docker compose up -d nginx
+
+            # Give Nginx a moment
+            sleep 5
+
+            # Obtain certificate
+            docker compose run --rm certbot certonly --webroot -w /var/www/certbot \
+              --email "${LE_EMAIL}" --agree-tos --no-eff-email ${STAGING_FLAG} \
+              -d "${DOMAIN}" -d "www.${DOMAIN}"
+
+            # Stop bootstrap
+            docker compose down
+            # Switch to HTTPS config
+            cp -f nginx/conf.d/site.conf.app nginx/conf.d/site.conf
+          else
+            echo "Existing certs found for ${DOMAIN}."
+            # Always ensure HTTPS config is in place
+            cp -f nginx/conf.d/site.conf.app nginx/conf.d/site.conf
+          fi
+
+      - name: Deploy stack
+        run: |
+          # Do NOT prune volumes; certs live in /docker-data
+          docker system prune -af || true
+          docker compose up -d
+
+      - name: Show running containers
+        run: docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+
+      - name: Tail Nginx logs (last 100 lines)
+        if: always()
+        run: docker logs --tail 100 nginx || true
