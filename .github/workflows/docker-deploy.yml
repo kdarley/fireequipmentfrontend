@@ -110,7 +110,6 @@ jobs:
             cp -f nginx/conf.d/site.conf.app nginx/conf.d/site.conf
           fi
 
-      - name: Deploy stack
       - name: Clean Docker environment before deploy
         run: |
           docker stop $(docker ps -q) || true
@@ -118,7 +117,8 @@ jobs:
           docker image prune -af
           docker volume prune -f
           docker network prune -f
-
+          
+      - name: Deploy stack
         run: |
           # Prune and recreate containers
           docker compose up -d --force-recreate
