@@ -42,11 +42,17 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Pull latest Docker image
-        run: docker pull kdarley/fireequipmentfrontend:latest
+      - name: Clean up Docker to free space
+        run: docker system prune -af --volumes || true
 
-      - name: Stop existing containers and remove them
-        run: docker compose down
+      - name: Pull latest Docker images
+        run: |
+          docker pull kdarley/fireequipmentfrontend:latest
+          docker pull nginx:latest
+          docker pull certbot/certbot:latest
+
+      - name: Stop and remove existing containers (if any)
+        run: docker compose down || echo "No existing containers to stop"
 
       - name: Start containers with docker compose
         run: docker compose up -d
