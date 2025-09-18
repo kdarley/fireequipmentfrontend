@@ -35,6 +35,7 @@ jobs:
     runs-on: self-hosted
 
     env:
+      POSTGRES_URL: ${{ secrets.POSTGRES_URL}}
       DOMAIN: ${{ secrets.PROD_DOMAIN }}   # e.g. example.com
       LE_EMAIL: ${{ secrets.LE_EMAIL }}    # your email for Let's Encrypt
       # Set to "true" while testing to avoid rate limits, then remove.
