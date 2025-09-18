@@ -134,7 +134,8 @@ export async function authenticate(
 
 export type UserState = {
   errors?: {
-    name?: string[];
+    first_name?: string[];
+    last_name?: string[];
     email?: string[];
     password?: string[];
   };
@@ -143,7 +144,8 @@ export type UserState = {
 
 const UserFormSchema = z.object({
   id: z.string(),
-  name: z.string().min(1, { message: 'Name is required.' }),
+  first_name: z.string().min(1, { message: 'First name is required.' }),
+  last_name: z.string().min(1, { message: 'Last name is required.' }),
   email: z.string().email({ message: 'Invalid email address.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters long.' }),
 });
@@ -152,7 +154,8 @@ const CreateUser = UserFormSchema.omit({ id: true });
 
 export async function createUser(prevState: UserState, formData: FormData): Promise<UserState> {
   const validatedFields = CreateUser.safeParse({
-    name: formData.get('name'),
+    first_name: formData.get('first_name'),
+    last_name: formData.get('last_name'),
     email: formData.get('email'),
     password: formData.get('password'),
   });
@@ -164,10 +167,11 @@ export async function createUser(prevState: UserState, formData: FormData): Prom
     };
   }
 
-  const { name, email, password } = validatedFields.data;
+  const { first_name, last_name, email, password } = validatedFields.data;
 
   // console.log('CREATE USER FUNCTION HIT!');
-  // console.log('Name:', name);
+  // console.log('First Name:', first_name);
+  // console.log('Last Name:', last_name);
   // console.log('Email:', email);
   // console.log('Password:', password);
 
@@ -184,8 +188,8 @@ export async function createUser(prevState: UserState, formData: FormData): Prom
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await sql`
-      INSERT INTO users (id, name, email, password)
-      VALUES (${uuidv4()}, ${name}, ${email}, ${hashedPassword})
+      INSERT INTO users (id, first_name, last_name, email, password)
+      VALUES (${uuidv4()}, ${first_name}, ${last_name}, ${email}, ${hashedPassword})
     `;
   } catch (error) {
     return {

@@ -37,6 +37,7 @@ next-env.d.ts
 
 *.ppk
 *.pem
+*.pub
 
 certbot/conf/live/
 certbot/conf/archive/
