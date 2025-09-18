@@ -42,9 +42,9 @@ export default function RegisterForm() {
           <div>
             <label
               className="mb-3 mt-5 block text-xs font-medium text-gray-900"
-              htmlFor="email"
+              htmlFor="first_name"
             >
-              Name
+              First Name
             </label>
             <div className="relative">
               <input
