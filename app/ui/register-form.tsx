@@ -22,9 +22,10 @@ export default function RegisterForm() {
   const [state, formAction] = useActionState(createUser, initialState);
 
   const [formValues, setFormValues] = useState({
-  name: '',
-  email: '',
-  password: '',
+    first_name: '',
+    last_name: '',
+    email: '',
+    password: '',
   });
 
 
@@ -49,22 +50,54 @@ export default function RegisterForm() {
             <div className="relative">
               <input
                 className="peer block w-full rounded-md border border-gray-200 py-[9px] pl-10 text-sm outline-2 placeholder:text-gray-500"
-                id="name"
+                id="first_name"
                 type="name"
-                name="name"
-                placeholder="John Doe"
-                aria-describedby="name-error"
-                value={formValues.name}
+                name="first_name"
+                placeholder="John"
+                aria-describedby="first_name-error"
+                value={formValues.first_name}
                 onChange={(e) => {
-                  setFormValues({ ...formValues, name: e.target.value });
+                  setFormValues({ ...formValues, first_name: e.target.value });
                 }}
                 // required
               />
               <UserCircleIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
             </div>
-            <div id="name-error" aria-live="polite" aria-atomic="true">
-              {state.errors?.name &&
-                state.errors.name.map((error: string) => (
+            <div id="first_name-error" aria-live="polite" aria-atomic="true">
+              {state.errors?.first_name &&
+                state.errors.first_name.map((error: string) => (
+                  <p className="mt-2 text-sm text-red-500" key={error}>
+                    {error}
+                  </p>
+                ))}
+            </div>
+          </div>
+          <div>
+            <label
+              className="mb-3 mt-5 block text-xs font-medium text-gray-900"
+              htmlFor="last_name"
+            >
+              Last Name
+            </label>
+            <div className="relative">
+              <input
+                className="peer block w-full rounded-md border border-gray-200 py-[9px] pl-10 text-sm outline-2 placeholder:text-gray-500"
+                id="last_name"
+                type="name"
+                name="last_name"
+                placeholder="Doe"
+                aria-describedby="last_name-error"
+                value={formValues.last_name}
+                onChange={(e) => {
+                  setFormValues({ ...formValues, last_name: e.target.value });
+                }}
+                // required
+              />
+              <UserCircleIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
+            </div>
+            <div id="last_name-error" aria-live="polite" aria-atomic="true">
+              {state.errors?.last_name &&
+                state.errors.last_name.map((error: string) => (
                   <p className="mt-2 text-sm text-red-500" key={error}>
                     {error}
                   </p>
