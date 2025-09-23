@@ -108,3 +108,4 @@ jobs:
 
           # Tail Nginx logs (last 100 lines)
           docker logs --tail 100 nginx || true
+
