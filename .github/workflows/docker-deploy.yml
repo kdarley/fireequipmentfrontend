@@ -35,6 +35,7 @@ jobs:
     runs-on: self-hosted
 
     env:
+      POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
       DOMAIN: ${{ secrets.PROD_DOMAIN }}   # e.g. example.com
       LE_EMAIL: ${{ secrets.LE_EMAIL }}    # your email for Let's Encrypt
       # Set to "true" while testing to avoid rate limits, then remove.
@@ -117,6 +118,12 @@ jobs:
           docker image prune -af
           docker volume prune -f
           docker network prune -f
+
+      - name: Generate Docker env file
+        run: |
+          cd /home/ubuntu/app
+          echo "POSTGRES_URL=${POSTGRES_URL}" > .env
+          echo "Generated .env with POSTGRES_URL for Docker Compose"
           
       - name: Deploy stack
         run: |
