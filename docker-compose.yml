@@ -3,8 +3,11 @@ services:
     image: kdarley/fireequipmentfrontend:latest
     container_name: frontend
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       NODE_ENV: production
+      POSTGRES_URL: ${POSTGRES_URL}`
     expose:
       - "3000"
     healthcheck:
