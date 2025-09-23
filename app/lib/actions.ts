@@ -9,7 +9,7 @@ import { AuthError } from 'next-auth';
 import  bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+const sql = postgres(process.env.POSTGRES_URL!, { ssl: false });
 
 const FormSchema = z.object({
   id: z.string(),
