@@ -35,6 +35,7 @@ jobs:
 
     env:
       POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
       DOMAIN: ${{ secrets.PROD_DOMAIN }}
       LE_EMAIL: ${{ secrets.LE_EMAIL }}
       LETSENCRYPT_STAGING: ${{ vars.LETSENCRYPT_STAGING || 'false' }}
