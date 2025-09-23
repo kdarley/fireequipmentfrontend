@@ -37,6 +37,8 @@ jobs:
       POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
       NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
       NEXTAUTH_URL: https://darleyx.com
+      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+      AUTH_URL: https://darleyx.com
       DOMAIN: ${{ secrets.PROD_DOMAIN }}
       LE_EMAIL: ${{ secrets.LE_EMAIL }}
       LETSENCRYPT_STAGING: ${{ vars.LETSENCRYPT_STAGING || 'false' }}
