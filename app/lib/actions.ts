@@ -236,7 +236,7 @@ export async function createUser(prevState: UserState, formData: FormData): Prom
   // Check if user exists
   let existingUser;
   try {
-    existingUser = await sql`SELECT * FROM users WHERE email = ${email}`;
+    existingUser = await sql`SELECT * FROM user_table WHERE email = ${email}`;
   } catch (err) {
     console.error('Error checking existing user:', err);
     return { message: 'Database Error: Failed to check existing user.' };
@@ -253,7 +253,7 @@ export async function createUser(prevState: UserState, formData: FormData): Prom
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await sql`
-      INSERT INTO users (id, first_name, last_name, email, password)
+      INSERT INTO user_table (id, first_name, last_name, email, password)
       VALUES (${uuidv4()}, ${first_name}, ${last_name}, ${email}, ${hashedPassword})
     `;
   } catch (err) {
