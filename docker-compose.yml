@@ -9,8 +9,8 @@ services:
       NODE_ENV: production
       POSTGRES_URL: ${POSTGRES_URL}   # Injected from host / GitHub Actions
       NEXTAUTH_URL: https://darleyx.com
-      NEXTAUTH_TRUST_HOST: "true"
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET} # Injected from host / GitHub Actions
+      NEXTAUTH_TRUST_HOST: "true"
     expose:
       - "3000"
     healthcheck:
