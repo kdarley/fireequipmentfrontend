@@ -7,9 +7,9 @@ import { lusitana } from '@/app/ui/fonts';
 // import { fetchCardData } from '@/app/lib/data'; // Remove fetchLatestInvoices
 import { Suspense } from 'react';
 import {
-  // RevenueChartSkeleton,
-  // LatestInvoicesSkeleton,
-  // CardsSkeleton,
+  RevenueChartSkeleton,
+  LatestInvoicesSkeleton,
+  CardsSkeleton,
 } from '@/app/ui/skeletons';
 
 export const revalidate = 0;
