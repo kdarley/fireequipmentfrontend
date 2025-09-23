@@ -3,15 +3,16 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import postgres from 'postgres';
+// import postgres from 'postgres';
+import sql from './sql';
 import { auth, signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 import  bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 
-const sql = postgres(process.env.POSTGRES_URL!, {
-  ssl: { rejectUnauthorized: false }  // safer for self-signed / private DB
-});
+// const sql = postgres(process.env.POSTGRES_URL!, {
+//   ssl: { rejectUnauthorized: false }  // safer for self-signed / private DB
+// });
 
 const FormSchema = z.object({
   id: z.string(),
@@ -154,6 +155,67 @@ const UserFormSchema = z.object({
 
 const CreateUser = UserFormSchema.omit({ id: true });
 
+// export async function createUser(prevState: UserState, formData: FormData): Promise<UserState> {
+//   const validatedFields = CreateUser.safeParse({
+//     first_name: formData.get('first_name'),
+//     last_name: formData.get('last_name'),
+//     email: formData.get('email'),
+//     password: formData.get('password'),
+//   });
+
+//   if (!validatedFields.success) {
+//     return {
+//       errors: validatedFields.error.flatten().fieldErrors,
+//       message: 'Invalid input. Failed to create user.',
+//     };
+//   }
+
+//   const { first_name, last_name, email, password } = validatedFields.data;
+
+//   // console.log('CREATE USER FUNCTION HIT!');
+//   // console.log('First Name:', first_name);
+//   // console.log('Last Name:', last_name);
+//   // console.log('Email:', email);
+//   // console.log('Password:', password);
+
+//   const existingUser = await sql`
+//   SELECT * FROM users WHERE email = ${email}`;
+
+//   if (existingUser.length > 0) {
+//     return {
+//       errors: { email: ['A user with that email already exists.'] },
+//     };
+//   }
+
+//   try {
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     await sql`
+//       INSERT INTO users (id, first_name, last_name, email, password)
+//       VALUES (${uuidv4()}, ${first_name}, ${last_name}, ${email}, ${hashedPassword})
+//     `;
+//   } catch (error) {
+//     return {
+//       message: 'Database Error: Failed to Create User.',
+//     };
+//   }
+
+//   try {
+//     await signIn('credentials', {
+//       redirect: false,
+//       email,
+//       password,
+//     });
+//   } catch (error) {
+//     console.error('Auto-login failed:', error);
+//     return {
+//       message: 'User created, but failed to sign in.',
+//     };
+//   }
+
+//   redirect('/dashboard');
+// }
+
 export async function createUser(prevState: UserState, formData: FormData): Promise<UserState> {
   const validatedFields = CreateUser.safeParse({
     first_name: formData.get('first_name'),
@@ -171,14 +233,14 @@ export async function createUser(prevState: UserState, formData: FormData): Prom
 
   const { first_name, last_name, email, password } = validatedFields.data;
 
-  // console.log('CREATE USER FUNCTION HIT!');
-  // console.log('First Name:', first_name);
-  // console.log('Last Name:', last_name);
-  // console.log('Email:', email);
-  // console.log('Password:', password);
-
-  const existingUser = await sql`
-  SELECT * FROM users WHERE email = ${email}`;
+  // Check if user exists
+  let existingUser;
+  try {
+    existingUser = await sql`SELECT * FROM users WHERE email = ${email}`;
+  } catch (err) {
+    console.error('Error checking existing user:', err);
+    return { message: 'Database Error: Failed to check existing user.' };
+  }
 
   if (existingUser.length > 0) {
     return {
@@ -186,6 +248,7 @@ export async function createUser(prevState: UserState, formData: FormData): Prom
     };
   }
 
+  // Insert new user
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -193,23 +256,17 @@ export async function createUser(prevState: UserState, formData: FormData): Prom
       INSERT INTO users (id, first_name, last_name, email, password)
       VALUES (${uuidv4()}, ${first_name}, ${last_name}, ${email}, ${hashedPassword})
     `;
-  } catch (error) {
-    return {
-      message: 'Database Error: Failed to Create User.',
-    };
+  } catch (err) {
+    console.error('Error inserting new user:', err);
+    return { message: 'Database Error: Failed to create user.' };
   }
 
+  // Auto-login
   try {
-    await signIn('credentials', {
-      redirect: false,
-      email,
-      password,
-    });
-  } catch (error) {
-    console.error('Auto-login failed:', error);
-    return {
-      message: 'User created, but failed to sign in.',
-    };
+    await signIn('credentials', { redirect: false, email, password });
+  } catch (err) {
+    console.error('Auto-login failed:', err);
+    return { message: 'User created, but failed to sign in.' };
   }
 
   redirect('/dashboard');
