@@ -8,6 +8,8 @@ services:
     environment:
       NODE_ENV: production
       POSTGRES_URL: ${POSTGRES_URL}   # Injected from host / GitHub Actions
+      NEXTAUTH_URL: https://darleyx.com
+      TRUSTED_HOSTS: https://darleyx.com
     expose:
       - "3000"
     healthcheck:
