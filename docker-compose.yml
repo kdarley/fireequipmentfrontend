@@ -1,12 +1,13 @@
+version: "3.9"
+
 services:
   frontend:
     image: kdarley/fireequipmentfrontend:latest
     container_name: frontend
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
       NODE_ENV: production
+      POSTGRES_URL: ${POSTGRES_URL}   # Injected from host / GitHub Actions
     expose:
       - "3000"
     healthcheck:
