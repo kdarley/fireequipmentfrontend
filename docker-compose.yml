@@ -9,6 +9,9 @@ services:
       NEXTAUTH_URL: https://darleyx.com
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET} # Injected from host / GitHub Actions
       NEXTAUTH_TRUST_HOST: "true"
+      AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_TRUST_HOST: "true"
+      AUTH_URL: https://darleyx.com
     expose:
       - "3000"
     healthcheck:
