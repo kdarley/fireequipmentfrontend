@@ -30,82 +30,81 @@ jobs:
           tags: ${{ env.IMAGE_NAME }}
 
   deploy:
-  needs: build-and-push
-  runs-on: ubuntu-latest
+    needs: build-and-push
+    runs-on: ubuntu-latest
 
-  env:
-    POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
-    DOMAIN: ${{ secrets.PROD_DOMAIN }}
-    LE_EMAIL: ${{ secrets.LE_EMAIL }}
-    LETSENCRYPT_STAGING: ${{ vars.LETSENCRYPT_STAGING || 'false' }}
+    env:
+      POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+      DOMAIN: ${{ secrets.PROD_DOMAIN }}
+      LE_EMAIL: ${{ secrets.LE_EMAIL }}
+      LETSENCRYPT_STAGING: ${{ vars.LETSENCRYPT_STAGING || 'false' }}
 
-  steps:
-    - name: Checkout repo
-      uses: actions/checkout@v4
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-    - name: Deploy to EC2 via SSH
-      uses: appleboy/ssh-action@v1
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          cd /home/ubuntu/app
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/ubuntu/app
 
-          # Ensure persistent directories exist
-          mkdir -p /docker-data/certbot/conf /docker-data/certbot/www
-          sudo chown -R $USER:$USER /docker-data
+            # Ensure persistent directories exist
+            mkdir -p /docker-data/certbot/conf /docker-data/certbot/www
+            sudo chown -R $USER:$USER /docker-data
 
-          # Generate .env with POSTGRES_URL
-          echo "POSTGRES_URL=${POSTGRES_URL}" > .env
-          echo "Generated .env with POSTGRES_URL for Docker Compose"
+            # Generate .env with POSTGRES_URL
+            echo "POSTGRES_URL=${POSTGRES_URL}" > .env
+            echo "Generated .env with POSTGRES_URL for Docker Compose"
 
-          # Pull images
-          docker pull kdarley/fireequipmentfrontend:latest
-          docker pull nginx:latest
-          docker pull certbot/certbot:latest
+            # Pull images
+            docker pull kdarley/fireequipmentfrontend:latest
+            docker pull nginx:latest
+            docker pull certbot/certbot:latest
 
-          # Render Nginx templates
-          mkdir -p nginx/conf.d
-          sed "s/{{DOMAIN}}/${DOMAIN}/g" nginx/templates/bootstrap.conf.template > nginx/conf.d/site.conf.bootstrap
-          sed "s/{{DOMAIN}}/${DOMAIN}/g" nginx/templates/app.conf.template > nginx/conf.d/site.conf.app
+            # Render Nginx templates
+            mkdir -p nginx/conf.d
+            sed "s/{{DOMAIN}}/${DOMAIN}/g" nginx/templates/bootstrap.conf.template > nginx/conf.d/site.conf.bootstrap
+            sed "s/{{DOMAIN}}/${DOMAIN}/g" nginx/templates/app.conf.template > nginx/conf.d/site.conf.app
 
-          # Bootstrap cert if missing
-          set -e
-          CERT_DIR="/docker-data/certbot/conf/live/${DOMAIN}"
-          STAGING_FLAG=""
-          if [ "${LETSENCRYPT_STAGING}" = "true" ]; then
-            STAGING_FLAG="--staging"
-          fi
+            # Bootstrap cert if missing
+            set -e
+            CERT_DIR="/docker-data/certbot/conf/live/${DOMAIN}"
+            STAGING_FLAG=""
+            if [ "${LETSENCRYPT_STAGING}" = "true" ]; then
+              STAGING_FLAG="--staging"
+            fi
 
-          if [ ! -d "$CERT_DIR" ]; then
-            echo "No certs found. Bootstrapping..."
-            cp nginx/conf.d/site.conf.bootstrap nginx/conf.d/site.conf
-            docker compose up -d nginx
-            sleep 5
-            docker compose run --rm certbot certonly --webroot -w /var/www/certbot \
-              --email "${LE_EMAIL}" --agree-tos --no-eff-email ${STAGING_FLAG} \
-              -d "${DOMAIN}" -d "www.${DOMAIN}"
-            docker compose down
-            cp -f nginx/conf.d/site.conf.app nginx/conf.d/site.conf
-          else
-            echo "Existing certs found for ${DOMAIN}."
-            cp -f nginx/conf.d/site.conf.app nginx/conf.d/site.conf
-          fi
+            if [ ! -d "$CERT_DIR" ]; then
+              echo "No certs found. Bootstrapping..."
+              cp nginx/conf.d/site.conf.bootstrap nginx/conf.d/site.conf
+              docker compose up -d nginx
+              sleep 5
+              docker compose run --rm certbot certonly --webroot -w /var/www/certbot \
+                --email "${LE_EMAIL}" --agree-tos --no-eff-email ${STAGING_FLAG} \
+                -d "${DOMAIN}" -d "www.${DOMAIN}"
+              docker compose down
+              cp -f nginx/conf.d/site.conf.app nginx/conf.d/site.conf
+            else
+              echo "Existing certs found for ${DOMAIN}."
+              cp -f nginx/conf.d/site.conf.app nginx/conf.d/site.conf
+            fi
 
-          # Clean Docker environment
-          docker stop $(docker ps -q) || true
-          docker rm $(docker ps -aq) || true
-          docker image prune -af
-          docker volume prune -f
-          docker network prune -f
+            # Clean Docker environment
+            docker stop $(docker ps -q) || true
+            docker rm $(docker ps -aq) || true
+            docker image prune -af
+            docker volume prune -f
+            docker network prune -f
 
-          # Deploy stack
-          docker compose up -d --force-recreate
+            # Deploy stack
+            docker compose up -d --force-recreate
 
-          # Show running containers
-          docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+            # Show running containers
+            docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
 
-          # Tail Nginx logs (last 100 lines)
-          docker logs --tail 100 nginx || true
-
+            # Tail Nginx logs (last 100 lines)
+            docker logs --tail 100 nginx || true
