@@ -34,7 +34,9 @@ jobs:
     runs-on: self-hosted   # Your EC2 runner
 
     env:
-      POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+      # POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+      POSTGRES_AUTH_URL: ${{ secrets.POSTGRES_AUTH_URL }}
+      POSTGRES_DATA_URL: ${{ secrets.POSTGRES_DATA_URL }}
       # NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
       # NEXTAUTH_URL: https://darleyx.com
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
