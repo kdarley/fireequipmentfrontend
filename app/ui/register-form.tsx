@@ -30,7 +30,8 @@ export default function RegisterForm() {
 
 
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+  const safeSearchParams = searchParams ?? new URLSearchParams(); // fallback
+  const callbackUrl = safeSearchParams.get('callbackUrl') || '/dashboard';
   console.log('Form State:', state);
   return (
     <form action={formAction} className="space-y-3">
