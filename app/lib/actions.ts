@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 // import postgres from 'postgres';
-import sql from './sql';
+import {sqlData, sqlAuth} from './sql';
 import { auth, signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 import  bcrypt from 'bcrypt';
@@ -57,7 +57,7 @@ export async function createInvoice(prevState: State, formData: FormData) {
     const date = new Date().toISOString().split('T')[0];
 
     try {  
-        await sql`
+        await sqlData`
             INSERT INTO invoices (customer_id, amount, status, date)
             VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
         `; 
@@ -96,7 +96,7 @@ export async function updateInvoice(
   const amountInCents = amount * 100;
  
   try {
-    await sql`
+    await sqlData`
       UPDATE invoices
       SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
       WHERE id = ${id}
@@ -112,7 +112,7 @@ export async function updateInvoice(
 export async function deleteInvoice(id: string) {
   // throw new Error('Failed to Delete Invoice');
 
-  await sql`DELETE FROM invoices WHERE id = ${id}`;
+  await sqlData`DELETE FROM invoices WHERE id = ${id}`;
   revalidatePath('/dashboard/invoices');
 }
 
@@ -236,7 +236,7 @@ export async function createUser(prevState: UserState, formData: FormData): Prom
   // Check if user exists
   let existingUser;
   try {
-    existingUser = await sql`SELECT * FROM user_login WHERE email = ${email}`;
+    existingUser = await sqlAuth`SELECT * FROM user_login WHERE email = ${email}`;
   } catch (err) {
     console.error('Error checking existing user:', err);
     return { message: 'Database Error: Failed to check existing user.' };
@@ -252,7 +252,7 @@ export async function createUser(prevState: UserState, formData: FormData): Prom
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await sql`
+    await sqlAuth`
       INSERT INTO user_login (id, first_name, last_name, email, password)
       VALUES (${uuidv4()}, ${first_name}, ${last_name}, ${email}, ${hashedPassword})
     `;
