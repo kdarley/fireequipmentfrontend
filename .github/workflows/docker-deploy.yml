@@ -28,6 +28,12 @@ jobs:
           context: .
           push: true
           tags: ${{ env.IMAGE_NAME }}
+          build-args: |
+            POSTGRES_URL=${{ secrets.POSTGRES_URL }}
+            POSTGRES_AUTH_URL=${{ secrets.POSTGRES_AUTH_URL }}
+            POSTGRES_DATA_URL=${{ secrets.POSTGRES_DATA_URL }}
+            AUTH_SECRET=${{ secrets.AUTH_SECRET }}
+            AUTH_URL=https://darleyx.com
 
   deploy:
     needs: build-and-push

@@ -4,6 +4,21 @@ FROM node:18-alpine
 # Set working directory inside container
 WORKDIR /app
 
+# Accept build-time arguments
+ARG POSTGRES_URL
+ARG POSTGRES_AUTH_URL
+ARG POSTGRES_DATA_URL
+ARG AUTH_SECRET
+ARG AUTH_URL
+
+# Set the env variables
+ENV NODE_ENV=production
+ENV POSTGRES_URL=$POSTGRES_URL
+ENV POSTGRES_AUTH_URL=$POSTGRES_AUTH_URL
+ENV POSTGRES_DATA_URL=$POSTGRES_DATA_URL
+ENV AUTH_SECRET=$AUTH_SECRET
+ENV AUTH_URL=$AUTH_URL
+
 # Install pnpm globally
 RUN npm install -g pnpm
 
