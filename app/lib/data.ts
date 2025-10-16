@@ -1,15 +1,46 @@
 import postgres from 'postgres';
 import {
+  SellerProductTotal,
   CustomerField,
   CustomersTableType,
   InvoiceForm,
   InvoicesTable,
   LatestInvoiceRaw,
   Revenue,
+
 } from './definitions';
 import { formatCurrency } from './utils';
+import { sqlData } from './sql';
+
+
+export async function fetchTotalCountProductPages() {
+  try {
+    const rows = await sqlData<SellerProductTotal[]>`
+      SELECT 
+        seller.seller_id,
+        seller.seller_name, 
+        COUNT(product.product_id) AS total
+      FROM product
+      LEFT JOIN seller 
+        ON product.seller_id = seller.seller_id
+      GROUP BY 
+        seller.seller_id,
+        seller.seller_name;
+    `
+    return rows.map(r => ({
+      seller_id: String(r.seller_id),
+      seller_name: String(r.seller_name),
+      total: Number(r.total ?? 0),
+    }));
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch total number of product pages.');
+  }
+}
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+
+
 
 export async function fetchRevenue() {
   try {
@@ -175,7 +206,7 @@ export async function fetchCustomers() {
         id,
         name
       FROM customers
-      ORDER BY name ASC
+      ORDER BY name ASC;
     `;
 
     return customers;
