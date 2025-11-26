@@ -10,6 +10,27 @@ export type User = {
   password: string;
 };
 
+export type SellerHistogramBucket = {
+  seller_id: string;
+  seller_name: string;
+  bucket: number;
+  count: number;
+  bucket_min_price: number;
+  bucket_max_price: number;
+}
+
+export type SellerPricingBoxplotStats = {
+  seller_id: string;
+  seller_name: string;
+  min_value: number;
+  q1: number;
+  median: number;
+  q3: number;
+  max_value: number;
+  lower_fence: number;
+  upper_fence: number;
+};
+
 export type SellerProductTotal = {
   seller_id: string;
   seller_name: string;

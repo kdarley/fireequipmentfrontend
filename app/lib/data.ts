@@ -7,13 +7,96 @@ import {
   InvoicesTable,
   LatestInvoiceRaw,
   Revenue,
+  SellerPricingBoxplotStats,
+  SellerHistogramBucket
 
 } from './definitions';
 import { formatCurrency } from './utils';
 import { sqlData } from './sql';
 
+export async function fetchSellerHistogramPricingStats() {
+  const rows = await sqlData<SellerHistogramBucket[]>`
+    SELECT
+      s.seller_id,
+      s.seller_name,
+      width_bucket(p.lowest_price, 0, 10000, 100) as bucket,
+      COUNT(*) as count,
+      MIN(p.lowest_price) AS bucket_min_price,
+      MAX(p.lowest_price) AS bucket_max_price
+    FROM pricing p
+    JOIN product pr ON p.product_id = pr.product_id
+    JOIN seller s ON pr.seller_id = s.seller_id
+    WHERE p.lowest_price IS NOT NULL
+    GROUP BY s.seller_id, s.seller_name, bucket
+    ORDER BY s.seller_name, bucket;
+    `;
+
+  return rows.map(r => ({
+    seller_id: r.seller_id.toString(),
+    seller_name: r.seller_name,
+    bucket: r.bucket,
+    count: Number(r.count),
+    bucket_min_price: Number(r.bucket_min_price),
+    bucket_max_price: Number(r.bucket_max_price),
+  }));
+}
+
+export async function fetchProductSellerPricingBoxplotStats(){
+   try {
+    const rows = await sqlData<SellerPricingBoxplotStats[]>`
+    SELECT sb.*, seller_name
+    FROM seller_boxplot_pricing_stats sb
+    JOIN seller s ON sb.seller_id = s.seller_id
+    WHERE sb.date = (
+      SELECT MAX(date)
+      FROM seller_boxplot_pricing_stats
+   )
+      ORDER BY s.seller_name;
+      `
+    return rows.map(r => ({
+      seller_id: String(r.seller_id),
+      seller_name: String(r.seller_name),
+      min_price: Number(r.min_value),
+      q1_price: Number(r.q1),
+      median_price: Number(r.median),
+      q3_price: Number(r.q3),
+      max_price: Number(r.max_value),
+      lower_fence: Number(r.lower_fence),
+      upper_fence: Number(r.upper_fence),
+    }));
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch seller pricing boxplot stats.');
+  }
+}
 
 export async function fetchTotalCountProductPages() {
+  try {
+    const rows = await sqlData<SellerProductTotal[]>`
+      SELECT 
+        seller.seller_id,
+        seller.seller_name, 
+        COUNT(product_group.group_id) AS total
+      FROM product_group
+      LEFT JOIN seller 
+        ON product_group.seller_id = seller.seller_id
+      GROUP BY 
+        seller.seller_id,
+        seller.seller_name;
+    `
+
+    return rows.map(r => ({
+      seller_id: String(r.seller_id),
+      seller_name: String(r.seller_name),
+      total: Number(r.total ?? 0),
+    }));
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch total number of product pages.');
+  }
+}
+
+export async function fetchTotalCountProductVariants() {
   try {
     const rows = await sqlData<SellerProductTotal[]>`
       SELECT 
@@ -27,6 +110,7 @@ export async function fetchTotalCountProductPages() {
         seller.seller_id,
         seller.seller_name;
     `
+
     return rows.map(r => ({
       seller_id: String(r.seller_id),
       seller_name: String(r.seller_name),
