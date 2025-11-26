@@ -8,38 +8,98 @@ import {
   LatestInvoiceRaw,
   Revenue,
   SellerPricingBoxplotStats,
-  SellerHistogramBucket
+  // SellerHistogramBucket
+  HistogramRow,
 
 } from './definitions';
 import { formatCurrency } from './utils';
 import { sqlData } from './sql';
 
-export async function fetchSellerHistogramPricingStats() {
-  const rows = await sqlData<SellerHistogramBucket[]>`
-    SELECT
-      s.seller_id,
-      s.seller_name,
-      width_bucket(p.lowest_price, 0, 10000, 100) as bucket,
-      COUNT(*) as count,
-      MIN(p.lowest_price) AS bucket_min_price,
-      MAX(p.lowest_price) AS bucket_max_price
-    FROM pricing p
-    JOIN product pr ON p.product_id = pr.product_id
-    JOIN seller s ON pr.seller_id = s.seller_id
-    WHERE p.lowest_price IS NOT NULL
-    GROUP BY s.seller_id, s.seller_name, bucket
-    ORDER BY s.seller_name, bucket;
-    `;
+export async function fetchProductHistogramStats() {
+  const under1k = await sqlData<HistogramRow[]>`
+    WITH raw AS (
+      SELECT p.lowest_price, s.seller_id, s.seller_name
+      FROM pricing p
+      JOIN product pr ON p.product_id = pr.product_id
+      JOIN seller s ON pr.Seller_id = s.seller_id
+      WHERE p.lowest_price < 1000
+    ),
+    bucketed AS (
+      SELECT seller_id, seller_name,
+        floor(lowest_price/50) * 50 AS bucket_start,
+        floor(lowest_price/50) * 50 + 50 AS bucket_end
+      FROM raw
+    )
+    SELECT bucket_start, bucket_end, seller_id, seller_name, COUNT(*) AS count
+    FROM bucketed
+    GROUP BY bucket_start, bucket_end, seller_id, seller_name
+    ORDER BY bucket_start, seller_name;
+  `
+  const over1k = await sqlData<HistogramRow[]>`
+    WITH raw AS (
+      SELECT p.lowest_price, s.seller_id, s.seller_name
+      FROM pricing p
+      JOIN product pr ON p.product_id = pr.product_id
+      JOIN seller s ON pr.seller_id = s.seller_id
+      WHERE p.lowest_price >= 1000
+    ),
+    bucketed AS (
+      SELECT seller_id, seller_name,
+        floor(lowest_price/1000) * 1000 AS bucket_start,
+        floor(lowest_price/1000) * 1000 + 1000 AS bucket_end
+      FROM raw
+    )
+    SELECT bucket_start, bucket_end, seller_id, seller_name, COUNT(*) AS count
+    FROM bucketed
+    GROUP BY bucket_start, bucket_end, seller_id, seller_name
+    ORDER BY bucket_start, seller_name;
+  `
 
-  return rows.map(r => ({
-    seller_id: r.seller_id.toString(),
-    seller_name: r.seller_name,
-    bucket: r.bucket,
-    count: Number(r.count),
-    bucket_min_price: Number(r.bucket_min_price),
-    bucket_max_price: Number(r.bucket_max_price),
-  }));
+  return {
+    under1k: under1k.map( r => ({
+      bucket_start: r.bucket_start,
+      bucket_end: r.bucket_end,
+      id: r.seller_id.toString(),
+      name: r.seller_name,
+      count: Number(r.count),
+    })),
+    over1k: over1k.map( r => ({
+      bucket_start: r.bucket_start,
+      bucket_end: r.bucket_end,
+      id: r.seller_id.toString(),
+      name: r.seller_name,
+      count: Number(r.count),
+    })),
+  };
 }
+
+////deprecated
+// export async function fetchSellerHistogramPricingStats() {
+//   const rows = await sqlData<SellerHistogramBucket[]>`
+//     SELECT
+//       s.seller_id,
+//       s.seller_name,
+//       width_bucket(p.lowest_price, 0, 10000, 100) as bucket,
+//       COUNT(*) as count,
+//       MIN(p.lowest_price) AS bucket_min_price,
+//       MAX(p.lowest_price) AS bucket_max_price
+//     FROM pricing p
+//     JOIN product pr ON p.product_id = pr.product_id
+//     JOIN seller s ON pr.seller_id = s.seller_id
+//     WHERE p.lowest_price IS NOT NULL
+//     GROUP BY s.seller_id, s.seller_name, bucket
+//     ORDER BY s.seller_name, bucket;
+//     `;
+
+//   return rows.map(r => ({
+//     seller_id: r.seller_id.toString(),
+//     seller_name: r.seller_name,
+//     bucket: r.bucket,
+//     count: Number(r.count),
+//     bucket_min_price: Number(r.bucket_min_price),
+//     bucket_max_price: Number(r.bucket_max_price),
+//   }));
+// }
 
 export async function fetchProductSellerPricingBoxplotStats(){
    try {

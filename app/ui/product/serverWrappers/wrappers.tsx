@@ -1,8 +1,8 @@
 'use server';
 
-import { fetchProductSellerPricingBoxplotStats, fetchSellerHistogramPricingStats } from '@/app/lib/data';
+import { fetchProductSellerPricingBoxplotStats, fetchProductHistogramStats } from '@/app/lib/data';
 import ProductSellerBoxplotClient from '../boxplots';
-import ProductSellerHistogram from '../histogram';
+import ProductHistogramClient from '../histogram';
 
 export async function ProductSellerBoxplotWrapper() {
   const stats = await fetchProductSellerPricingBoxplotStats();
@@ -10,6 +10,6 @@ export async function ProductSellerBoxplotWrapper() {
 }
 
 export async function ProductSellerHistogramWrapper() {
-    const stats = await fetchSellerHistogramPricingStats();
-    return <ProductSellerHistogram stats={stats} />;
+    const stats = await fetchProductHistogramStats();
+    return <ProductHistogramClient data={stats} />;
 }

@@ -10,14 +10,24 @@ export type User = {
   password: string;
 };
 
-export type SellerHistogramBucket = {
-  seller_id: string;
+// // deprecated
+// export type SellerHistogramBucket = {
+//   seller_id: string;
+//   seller_name: string;
+//   bucket: number;
+//   count: number;
+//   bucket_min_price: number;
+//   bucket_max_price: number;
+// }
+
+export type HistogramRow = {
+  bucket_start: number;
+  bucket_end: number;
+  seller_id: number;
   seller_name: string;
-  bucket: number;
   count: number;
-  bucket_min_price: number;
-  bucket_max_price: number;
-}
+};
+
 
 export type SellerPricingBoxplotStats = {
   seller_id: string;
