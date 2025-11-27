@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { lusitana } from '@/app/ui/fonts';
 import { fetchTotalCountProductPages } from '@/app/lib/data';
 import { Suspense } from 'react';
