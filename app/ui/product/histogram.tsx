@@ -14,6 +14,12 @@ const SELLER_COLORS = [
   "bg-orange-500",
 ];
 
+interface BucketGroup {
+  start: number;
+  end: number;
+  sellers: HistogramRow[];
+}
+
 export default function ProductHistogramClient({
   data,
 }: {
@@ -22,8 +28,8 @@ export default function ProductHistogramClient({
     over1k: HistogramRow[];
   };
 }) {
-  const formatBuckets = (rows: HistogramRow[]) => {
-    const grouped: Record<string, any> = {};
+  const formatBuckets = (rows: HistogramRow[]): BucketGroup[] => {
+    const grouped: Record<string, BucketGroup> = {};
     rows.forEach((r) => {
       const key = `${r.bucket_start}-${r.bucket_end}`;
       if (!grouped[key]) {
@@ -52,14 +58,14 @@ function SectionHeader({ title }: { title: string }) {
   return <h2 className="text-xl font-semibold mb-4">{title}</h2>;
 }
 
-function useSellerColors(buckets: any[]) {
+function useSellerColors(buckets: BucketGroup[]) {
   return useMemo(() => {
-    const mapping: Record<string, string> = {};
+    const mapping: Record<number, string> = {};
     let idx = 0;
     buckets.forEach((b) =>
-      b.sellers.forEach((s: any) => {
-        if (!mapping[s.id]) {
-          mapping[s.id] = SELLER_COLORS[idx % SELLER_COLORS.length];
+      b.sellers.forEach((s) => {
+        if (!mapping[s.seller_id]) {
+          mapping[s.seller_id] = SELLER_COLORS[idx % SELLER_COLORS.length];
           idx++;
         }
       })
@@ -72,22 +78,22 @@ function Legend({
   sellers,
   sellerColors,
 }: {
-  sellers: { id: string; name: string }[];
-  sellerColors: Record<string, string>;
+  sellers: { seller_id: number; seller_name: string }[];
+  sellerColors: Record<number, string>;
 }) {
   return (
     <div className="flex flex-wrap gap-4 mb-6">
       {sellers.map((s) => (
-        <div key={s.id} className="flex items-center gap-2 text-sm">
-          <span className={`w-4 h-4 rounded ${sellerColors[s.id]}`} />
-          <span className="text-gray-700">{s.name}</span>
+        <div key={s.seller_id} className="flex items-center gap-2 text-sm">
+          <span className={`w-4 h-4 rounded ${sellerColors[s.seller_id]}`} />
+          <span className="text-gray-700">{s.seller_name}</span>
         </div>
       ))}
     </div>
   );
 }
 
-function Histogram({ buckets }: { buckets: any[] }) {
+function Histogram({ buckets }: { buckets: BucketGroup[] }) {
   const sellerColors = useSellerColors(buckets);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(300);
@@ -108,15 +114,18 @@ function Histogram({ buckets }: { buckets: any[] }) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const maxCount = Math.max(...buckets.flatMap((b) => b.sellers.map((s: any) => s.count)));
+  const maxCount = Math.max(...buckets.flatMap((b) => b.sellers.map((s) => s.count)));
   const scale = (v: number) => (v / maxCount) * containerWidth;
 
   const uniqueSellers = useMemo(() => {
-    const map: Record<string, string> = {};
+    const map: Record<number, string> = {};
     buckets.forEach((b) =>
-      b.sellers.forEach((s: any) => { map[s.id] = s.name; })
+      b.sellers.forEach((s) => { map[s.seller_id] = s.seller_name; })
     );
-    return Object.entries(map).map(([id, name]) => ({ id, name }));
+    return Object.entries(map).map(([seller_id, seller_name]) => ({ 
+      seller_id: Number(seller_id), 
+      seller_name 
+    }));
   }, [buckets]);
 
   return (
@@ -125,7 +134,7 @@ function Histogram({ buckets }: { buckets: any[] }) {
 
       <div className="flex flex-col gap-2">
         {buckets.map((bucket) => (
-          <div key={bucket.start} className="flex items-start gap-4">
+          <div key={`${bucket.start}-${bucket.end}`} className="flex items-start gap-4">
 
             {/* Fixed-width bucket label */}
             <div
@@ -137,12 +146,15 @@ function Histogram({ buckets }: { buckets: any[] }) {
 
             {/* Bars stacked */}
             <div className="flex flex-col gap-1 flex-1">
-              {bucket.sellers.map((s: any) => {
+              {bucket.sellers.map((s, index) => {
                 const barWidth = scale(s.count);
-                const color = sellerColors[s.id];
+                const color = sellerColors[s.seller_id];
+                const uniqueKey = s.seller_id 
+                  ? `${bucket.start}-${bucket.end}-${s.seller_id}`
+                  : `${bucket.start}-${bucket.end}-${index}`;
 
                 return (
-                  <div key={s.id} className="flex items-center gap-2">
+                  <div key={uniqueKey} className="flex items-center gap-2">
                     <div
                       className={`h-6 rounded ${color}`}
                       style={{ width: `${Math.max(barWidth, 8)}px` }}

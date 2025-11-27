@@ -59,15 +59,15 @@ export async function fetchProductHistogramStats() {
     under1k: under1k.map( r => ({
       bucket_start: r.bucket_start,
       bucket_end: r.bucket_end,
-      id: r.seller_id.toString(),
-      name: r.seller_name,
+      seller_id: r.seller_id,
+      seller_name: r.seller_name,
       count: Number(r.count),
     })),
     over1k: over1k.map( r => ({
       bucket_start: r.bucket_start,
       bucket_end: r.bucket_end,
-      id: r.seller_id.toString(),
-      name: r.seller_name,
+      seller_id: r.seller_id,
+      seller_name: r.seller_name,
       count: Number(r.count),
     })),
   };
